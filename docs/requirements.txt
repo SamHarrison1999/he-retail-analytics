@@ -5,3 +5,7 @@ sphinxcontrib-mermaid>=1
 furo>=2024.8
 # Only needed if you use Python’s graphviz package in docs:
 # graphviz>=0.21
+
+sphinx-sitemap
+sphinxext-opengraph
+sphinx-design

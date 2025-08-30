@@ -1,38 +1,23 @@
-# Minimal makefile for Sphinx documentation
-#
+# docs/Makefile
 
-# You can set these variables from the command line, and also
-# from the environment for the first two.
-SPHINXOPTS    ?=
-SPHINXBUILD   ?= sphinx-build
-SOURCEDIR     = source
-BUILDDIR      = build
+# Prefer active venv; else repo .venv; else python; else python3
+PY ?= $(shell \
+  if [ -n "$$VIRTUAL_ENV" ] && [ -x "$$VIRTUAL_ENV/bin/python" ]; then echo "$$VIRTUAL_ENV/bin/python"; \
+  elif [ -x "$(CURDIR)/../.venv/bin/python" ]; then echo "$(CURDIR)/../.venv/bin/python"; \
+  elif command -v python >/dev/null 2>&1; then command -v python; \
+  else command -v python3; fi)
 
-# Put it first so that "make" without argument is like "make help".
-help:
-	@$(SPHINXBUILD) -M help "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
-
-.PHONY: help Makefile
-
-# Catch-all target: route all unknown targets to Sphinx using the new
-# "make mode" option.  $(O) is meant as a shortcut for $(SPHINXOPTS).
-%: Makefile
-	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
-
-
-
-PY    ?= python3
-PORT  ?= 8000
 SOURCEDIR = source
 BUILDDIR  = build
+PORT ?= 8000
 
-.PHONY: html serve open stop watch
+.PHONY: html serve open stop clean watch
 
 html:
 	$(PY) -m sphinx -b html $(SOURCEDIR) $(BUILDDIR)/html
 
 serve:
-	@$(PY) -m http.server --directory $(BUILDDIR)/html $(PORT)
+	$(PY) -m http.server --directory $(BUILDDIR)/html $(PORT)
 
 open:
 	@powershell.exe -NoProfile -Command Start-Process http://localhost:$(PORT)/index.html
@@ -40,5 +25,8 @@ open:
 stop:
 	@fuser -k $(PORT)/tcp 2>/dev/null || pkill -f "http.server.*$(PORT)" || true
 
+clean:
+	rm -rf $(BUILDDIR)
+
 watch:
-	@sphinx-autobuild $(SOURCEDIR) $(BUILDDIR)/html --port $(PORT)
+	$(PY) -m sphinx_autobuild $(SOURCEDIR) $(BUILDDIR)/html --port $(PORT)
