@@ -4,6 +4,8 @@ Homomorphic encryption for retail analytics — code, experiments, and Sphinx do
 
 [![Docs (live)](badge.svg)](https://samharrison1999.github.io/he-retail-analytics/)
 [![Build & Deploy Sphinx Docs](https://github.com/SamHarrison1999/he-retail-analytics/actions/workflows/docs.yml/badge.svg)](https://github.com/SamHarrison1999/he-retail-analytics/actions/workflows/docs.yml)
+[![License: Apache-2.0](https://img.shields.io/badge/Code%20License-Apache--2.0-blue.svg)](LICENSE)
+[![Docs License: CC BY 4.0](https://img.shields.io/badge/Docs%20License-CC%20BY%204.0-lightgrey.svg)](docs/LICENSE)
 
 ---
 
