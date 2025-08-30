@@ -1,0 +1,17 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Sphinx
+docs/_build/
+docs/build/
+
+# Node
+node_modules/
+pnpm-lock.yaml
+
+# OS/editor
+.DS_Store
+.idea/
+.vscode/

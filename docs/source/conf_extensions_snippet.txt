@@ -1,0 +1,14 @@
+# Add these to docs/source/conf.py
+
+extensions = [
+    "myst_parser",
+    "sphinx.ext.graphviz",
+    "sphinx_copybutton",
+    "sphinxcontrib.mermaid",
+]
+
+myst_enable_extensions = ["colon_fence", "deflist", "html_admonition", "html_image"]
+source_suffix = {".rst": "restructuredtext", ".md": "markdown"}
+
+graphviz_output_format = "svg"
+# graphviz_dot = "/usr/bin/dot"  # uncomment to pin the dot path
