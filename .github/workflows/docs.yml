@@ -38,11 +38,11 @@ jobs:
           python -m pip install -U pip
           pip install -r docs/requirements.txt
 
-      # Choose ONE of these. Start lenient; switch to strict later.
-      - name: Link check (lenient)
-        run: python -m sphinx -b linkcheck docs/source docs/build/linkcheck || true
-      # - name: Link check (strict)
-      #   run: python -m sphinx -b linkcheck docs/source docs/build/linkcheck -W
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Link check (strict)
+        run: python -m sphinx -b linkcheck docs/source docs/build/linkcheck -W
 
       - name: Build Sphinx
         run: |
@@ -58,6 +58,10 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    # keep permissions explicit on this job
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}
