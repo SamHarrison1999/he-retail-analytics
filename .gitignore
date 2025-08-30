@@ -15,3 +15,6 @@ pnpm-lock.yaml
 .DS_Store
 .idea/
 .vscode/
+
+# Windows ADS streams
+*:[Zz]one.Identifier
