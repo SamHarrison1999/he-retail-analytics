@@ -95,9 +95,17 @@ Every push to `main`:
 
 Workflow: `.github/workflows/docs.yml`.
 
-## License
+## Licensing
 
-_No license selected yet._ Add one when ready.
+- **Code** (everything outside `docs/`): licensed under the [Apache License 2.0](./LICENSE).  
+  _SPDX_: `SPDX-License-Identifier: Apache-2.0`
+
+- **Documentation** (everything in `docs/`): licensed under [Creative Commons Attribution 4.0 International](./docs/LICENSE).  
+  _SPDX_: `SPDX-License-Identifier: CC-BY-4.0`
+
+By contributing, you agree your contributions are provided under the same respective terms.  
+Note: third-party assets (e.g., logos) may be subject to their own licenses as noted in the docs.
+
 
 ## Contributing
 
