@@ -1,0 +1,6 @@
+{
+  "name": "he-retail-analytics",
+  "build": { "dockerfile": "Dockerfile" },
+  "features": {},
+  "postCreateCommand": "pip install -e backend[dev,tests] && corepack enable && pnpm -C web i"
+}
