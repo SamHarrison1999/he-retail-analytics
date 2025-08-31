@@ -1,12 +1,21 @@
+# .github/workflows/web-ci.yml
 name: web-ci
-on: [push, pull_request]
+on:
+  push:
+    paths:
+      - 'web/**'
+  pull_request:
+    paths:
+      - 'web/**'
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    - uses: actions/setup-node@v4
-      with: { node-version: 'lts/*' }
-    - run: corepack enable && pnpm i
-      working-directory: web
-    - run: pnpm -C web build
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 'lts/*' }
+      - name: Skip if no package.json
+        run: test -f web/package.json || { echo "No web app yet, skipping"; exit 0; }
+      - run: corepack enable && pnpm i
+        working-directory: web
+      - run: pnpm -C web build
