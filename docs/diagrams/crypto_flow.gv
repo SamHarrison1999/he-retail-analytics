@@ -1,0 +1,1 @@
+digraph G { keygen->encrypt->aggregate->threshold_decrypt }

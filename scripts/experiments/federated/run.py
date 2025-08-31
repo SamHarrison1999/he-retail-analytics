@@ -1,0 +1,1 @@
+print('stub: federated run')
