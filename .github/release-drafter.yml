@@ -1,0 +1,55 @@
+# .github/release-drafter.yml
+# Minimal but useful defaults. Works immediately after merge to main.
+
+name-template: 'v$RESOLVED_VERSION'
+tag-template: 'v$RESOLVED_VERSION'
+
+# Group PRs in the notes by label (make sure these labels exist in your repo).
+categories:
+  - title: '🚀 Features'
+    labels: ['feat', 'feature']
+  - title: '🐛 Fixes'
+    labels: ['fix', 'bug']
+  - title: '🧰 Maintenance'
+    labels: ['chore', 'ci', 'docs', 'refactor', 'perf', 'test']
+  - title: '🔐 Security'
+    labels: ['security']
+
+# How each PR line should look in the release notes
+change-template: '- $TITLE (#$NUMBER) @$AUTHOR'
+
+# How to bump the version based on labels
+version-resolver:
+  major:
+    labels: ['major']
+  minor:
+    labels: ['feat', 'feature', 'minor']
+  patch:
+    labels: ['fix', 'bug', 'chore', 'ci', 'docs', 'refactor', 'perf', 'security', 'patch', 'test']
+  default: patch
+
+# Auto-apply labels based on files or branch names (optional but handy)
+autolabeler:
+  - label: 'docs'
+    files: ['docs/**']
+    branch: ['/^docs\\/.*/']
+  - label: 'ci'
+    files: ['.github/**']
+    branch: ['/^ci\\/.*/']
+  - label: 'feat'
+    branch: ['/^feat\\/.*/', '/^feature\\/.*/']
+  - label: 'fix'
+    branch: ['/^fix\\/.*/', '/^bugfix\\/.*/']
+  - label: 'chore'
+    branch: ['/^chore\\/.*/']
+  - label: 'refactor'
+    branch: ['/^refactor\\/.*/']
+
+# Skip PRs with this label
+exclude-labels:
+  - 'skip-changelog'
+
+# Release notes body (you can customize later)
+template: |
+  ## What’s Changed
+  $CHANGES
