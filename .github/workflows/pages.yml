@@ -1,5 +1,5 @@
 # .github/workflows/pages.yml
-name: Build & Deploy: Docs + Web (GitHub Pages)
+name: Build & Deploy - Docs + Web (GitHub Pages)
 
 on:
   push:
