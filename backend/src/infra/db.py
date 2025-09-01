@@ -66,7 +66,8 @@ def update_job_status(job_id: str, status: str):
         if jr:
             jr.status = status
             jr.updated_at = datetime.now(timezone.utc)
-            s.add(jr); s.commit()
+            s.add(jr)
+            s.commit()
 
 def append_job_log(job_id: str, line: str):
     with get_session() as s:
@@ -76,7 +77,8 @@ def append_job_log(job_id: str, line: str):
 def fetch_job_logs(job_id: str, limit: int = 1000) -> List[JobLog]:
     with get_session() as s:
         q = select(JobLog).where(JobLog.job_id == job_id).order_by(JobLog.id.desc()).limit(limit)
-        rows = list(s.exec(q).all()); rows.reverse()
+        rows = list(s.exec(q).all())
+        rows.reverse()
         return rows
 
 def add_artifact(job_id: str, kind: str, name: str, path: str, sha256: str | None = None):
