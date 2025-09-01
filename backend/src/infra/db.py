@@ -1,3 +1,4 @@
+# backend/src/infra/db.py
 from __future__ import annotations
 
 import os
@@ -6,9 +7,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Iterator, List, cast
 
-from sqlalchemy import Column, JSON, select, and_, desc
-from sqlmodel import SQLModel, Field, Session, create_engine, select
+from sqlalchemy import Column, JSON, and_, desc, select
 from sqlalchemy.engine import Engine
+from sqlalchemy.sql import Select
+from sqlalchemy.sql.elements import ColumnElement
+from sqlmodel import Field, Session, SQLModel, create_engine
 
 
 # -------------------------
@@ -21,7 +24,7 @@ class JobRecord(SQLModel, table=True):
     status: str
     created_at: datetime
     updated_at: datetime
-    # SQLModel needs an explicit SQLAlchemy Column for JSON
+    # explicit SQLAlchemy JSON column to keep pydantic/sqlalchemy happy
     meta: dict[str, Any] | None = Field(default=None, sa_column=Column(JSON))
 
 
@@ -51,7 +54,7 @@ _engine_url: str | None = None
 
 
 def _default_sqlite_url() -> str:
-    # repo-root/results/he.sqlite (API mounts ./results for static files)
+    # repo-root/results/he.sqlite (API mounts ./results as /files)
     repo_root = Path(__file__).resolve().parents[3]
     results = repo_root / "results"
     results.mkdir(parents=True, exist_ok=True)
@@ -83,7 +86,7 @@ def ensure_engine(url: str | None) -> Engine:
     _engine = create_engine(target_url, echo=False, connect_args=connect_args)
     _engine_url = target_url
 
-    # First-time schema create (non-destructive: won't add columns on existing tables)
+    # First-time schema create (non-destructive for existing tables)
     SQLModel.metadata.create_all(_engine)
     return _engine
 
@@ -91,7 +94,6 @@ def ensure_engine(url: str | None) -> Engine:
 @contextmanager
 def get_session() -> Iterator[Session]:
     if _engine is None:
-        # Fallback to default if someone forgot to call ensure_engine()
         ensure_engine(os.environ.get("DB_URL"))
     assert _engine is not None
     with Session(_engine) as s:
@@ -99,7 +101,7 @@ def get_session() -> Iterator[Session]:
 
 
 # -------------------------
-# Job CRUD helpers
+# Job helpers (CRUD)
 # -------------------------
 
 def create_job_record(
@@ -140,34 +142,42 @@ def append_job_log(job_id: str, line: str) -> None:
         s.commit()
 
 
-def get_job_logs(job_id: str, limit: int = 200) -> List[JobLog]:
-    with get_session() as s:
-        stmt = (
-            select(JobLog)
-            .where(JobLog.job_id == job_id)
-            .order_by(desc(cast(Any, JobLog.created_at)))
-            .limit(limit)
-        )
-        rows: list[JobLog] = list(s.exec(stmt).all())
-        rows.reverse()  # most-recent last for streaming UX
-        return rows
-
-
 def add_artifact(job_id: str, kind: str, name: str, path: str, sha256: str | None = None) -> None:
     with get_session() as s:
-        a = Artifact(job_id=job_id, kind=kind, name=name, path=path, sha256=sha256)
-        s.add(a)
+        s.add(Artifact(job_id=job_id, kind=kind, name=name, path=path, sha256=sha256))
         s.commit()
 
 
-def list_artifacts(job_id: str, limit: int = 500) -> List[Artifact]:
-    with get_session() as s:
-        stmt = (
-            select(Artifact)
-            .where(Artifact.job_id == job_id)
-            .order_by(desc(cast(Any, Artifact.created_at)))
-            .limit(limit)
-        )
-        rows: list[Artifact] = list(s.exec(stmt).all())
-        rows.reverse()
-        return rows
+def get_job_logs(job_id: str, limit: int = 100) -> List[JobLog]:
+  """Newest first in DB; we reverse to return oldest->newest like a log tail."""
+  with get_session() as s:
+    jl_job_id: ColumnElement[str] = cast(Any, JobLog.__table__.c.job_id)  # type: ignore[attr-defined]
+    jl_created: ColumnElement[datetime] = cast(Any, JobLog.__table__.c.created_at)  # type: ignore[attr-defined]
+
+    q: Select[tuple[JobLog]] = (
+      select(JobLog)
+      .where(jl_job_id == job_id)
+      .order_by(desc(jl_created))
+      .limit(limit)
+    )
+    # SQLModel's typing for Session.exec doesn't fully line up with SA2 generics.
+    result = s.exec(cast(Any, q))
+    rows: List[JobLog] = list(result.scalars().all())
+    rows.reverse()
+    return rows
+
+
+def list_artifacts(job_id: str) -> List[Artifact]:
+  with get_session() as s:
+    a_id: ColumnElement[int] = cast(Any, Artifact.__table__.c.id)  # type: ignore[attr-defined]
+    a_job_id: ColumnElement[str] = cast(Any, Artifact.__table__.c.job_id)  # type: ignore[attr-defined]
+    a_created: ColumnElement[datetime] = cast(Any, Artifact.__table__.c.created_at)  # type: ignore[attr-defined]
+
+    q: Select[tuple[Artifact]] = (
+      select(Artifact)
+      .where(and_(a_job_id == job_id, a_id.is_not(None)))
+      .order_by(desc(a_created))
+      .limit(1000)
+    )
+    result = s.exec(cast(Any, q))
+    return list(result.scalars().all())
