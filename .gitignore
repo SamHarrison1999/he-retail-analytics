@@ -18,3 +18,4 @@ pnpm-lock.yaml
 
 # Windows ADS streams
 *:[Zz]one.Identifier
+!web/pnpm-lock.yaml
