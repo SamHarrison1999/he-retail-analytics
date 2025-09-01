@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import List, Optional
+from datetime import datetime
 
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
@@ -12,8 +13,6 @@ from src.infra.db import list_artifacts as db_list_artifacts
 router = APIRouter(prefix="/api/v1/jobs", tags=["jobs"])
 
 
-# ---------- Models ----------
-
 class JobModel(BaseModel):
     id: str
     kind: str
@@ -23,8 +22,19 @@ class JobModel(BaseModel):
     meta: dict | None = None
 
 
+def _iso(v: str | datetime) -> str:
+    return v if isinstance(v, str) else v.isoformat()
+
+
 def to_model(j: Job) -> JobModel:
-    return JobModel(**j.__dict__)
+    return JobModel(
+        id=j.id,
+        kind=j.kind,
+        status=j.status,
+        created_at=_iso(j.created_at),
+        updated_at=_iso(j.updated_at),
+        meta=j.meta or None,
+    )
 
 
 class MakeAllGARequest(BaseModel):
@@ -42,8 +52,6 @@ class ArtifactModel(BaseModel):
     sha256: str | None = None
     created_at: str | None = None
 
-
-# ---------- Routes ----------
 
 @router.get("", response_model=List[JobModel])
 async def list_jobs():
@@ -74,7 +82,6 @@ async def stream_logs(job_id: str):
 
     async def gen():
         async for item in STORE.subscribe(job_id):
-            # Server-Sent Events format
             yield f"data: {item}\n\n"
 
     return StreamingResponse(gen(), media_type="text/event-stream")
@@ -91,7 +98,7 @@ async def get_artifacts(job_id: str):
                 job_id=a.job_id,
                 kind=a.kind,
                 name=a.name,
-                path=str(a.path) if hasattr(a, "path") else a.path,
+                path=str(getattr(a, "path", "")),
                 sha256=a.sha256,
                 created_at=a.created_at.isoformat() if getattr(a, "created_at", None) else None,
             )
