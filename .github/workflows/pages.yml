@@ -51,13 +51,13 @@ jobs:
             pip install sphinx myst-parser furo sphinx-sitemap sphinxext-opengraph sphinx-design
           fi
 
-      - name: Build Sphinx HTML
-        run: |
-          python -m sphinx -W --keep-going -b html docs/source docs/build/html
-          # Optional linkcheck on PRs only (does not block deploy)
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            python -m sphinx -b linkcheck docs docs/_build/linkcheck || true
-          fi
+      - name: Build docs (Sphinx)
+        run: python -m sphinx -W --keep-going -b html docs/source docs/build/html
+
+      - name: Linkcheck docs (PRs only)
+        if: ${{ github.event_name == 'pull_request' }}
+        run: python -m sphinx -b linkcheck docs/source docs/build/linkcheck || true
+
 
       # ---------- Build React app ----------
       - name: Set up Node.js
@@ -94,7 +94,7 @@ jobs:
           mkdir -p site/app site/docs
 
           cp -R web/dist/* site/app/
-          cp -R docs/_build/html/* site/docs/
+          cp -R docs/build/html/* site/docs/
 
           # SPA fallback for GitHub Pages deep links
           cp site/app/index.html site/app/404.html
