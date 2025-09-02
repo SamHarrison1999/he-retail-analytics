@@ -1,0 +1,36 @@
+name: web-ci
+on:
+  pull_request:
+    paths: ['web/**']
+  push:
+    paths: ['web/**']
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 'lts/*' }
+
+      - name: Detect vite in web/package.json
+        id: detect
+        run: |
+          if [ ! -f web/package.json ]; then
+            echo "has_vite=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          node -e "const p=require('./web/package.json'); const has=Boolean((p.devDependencies&&p.devDependencies.vite)||(p.dependencies&&p.dependencies.vite)); console.log('has_vite='+has)" >> $GITHUB_OUTPUT
+
+      - name: Skip (no web app yet)
+        if: steps.detect.outputs.has_vite != 'true'
+        run: echo "No vite dependency yet; skipping build."
+
+      - name: Install deps
+        if: steps.detect.outputs.has_vite == 'true'
+        run: corepack enable && pnpm i
+        working-directory: web
+
+      - name: Build
+        if: steps.detect.outputs.has_vite == 'true'
+        run: pnpm -C web build
