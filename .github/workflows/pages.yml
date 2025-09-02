@@ -1,0 +1,158 @@
+# .github/workflows/pages.yml
+name: Build & Deploy - Docs + Web (GitHub Pages)
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ---------- Build Sphinx docs ----------
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: |
+            docs/requirements.txt
+            requirements.txt
+
+      - name: System deps for docs (graphviz)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y graphviz
+
+      - name: Install Python deps for docs
+        run: |
+          set -e
+          if [ -f docs/requirements.txt ]; then
+            python -m pip install -U pip
+            pip install -r docs/requirements.txt
+          else
+            # Fallback minimal toolchain if no requirements file is present
+            pip install -U pip
+            pip install sphinx myst-parser furo sphinx-sitemap sphinxext-opengraph sphinx-design
+          fi
+
+      - name: Build docs (Sphinx)
+        run: python -m sphinx -W --keep-going -b html docs/source docs/build/html
+
+      - name: Linkcheck docs (PRs only)
+        if: ${{ github.event_name == 'pull_request' }}
+        run: python -m sphinx -b linkcheck docs/source docs/build/linkcheck || true
+
+
+      # ---------- Build React app ----------
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.1
+          run_install: false
+
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ~/.pnpm-store
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('web/pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-pnpm-store-
+
+      - name: Install web deps
+        working-directory: web
+        run: pnpm install --frozen-lockfile
+
+      - name: Build web (base=/app)
+        working-directory: web
+        run: pnpm build -- --base=/app/
+
+      # ---------- Assemble combined site artifact ----------
+      - name: Assemble Pages artifact
+        run: |
+          set -e
+          rm -rf site
+          mkdir -p site/app site/docs
+
+          cp -R web/dist/* site/app/
+          cp -R docs/build/html/* site/docs/
+
+          # SPA fallback for GitHub Pages deep links
+          cp site/app/index.html site/app/404.html
+
+          # Root landing page linking to both areas
+          cat > site/index.html <<'HTML'
+          <!doctype html>
+          <html lang="en">
+            <head>
+              <meta charset="utf-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1">
+              <title>HE Retail Analytics</title>
+              <style>
+                body{font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;margin:0;padding:2rem;background:#0f172a;color:#e2e8f0}
+                .wrap{max-width:880px;margin:0 auto}
+                header{margin-bottom:2rem}
+                a.card{display:block;padding:1.25rem;background:#111827;border:1px solid #334155;border-radius:14px;text-decoration:none;color:#e2e8f0;margin:0 0 1rem}
+                a.card:hover{border-color:#60a5fa;background:#0b1220}
+                h1{font-size:1.75rem;margin:0 0 .5rem}
+                p{margin:.25rem 0 0;color:#94a3b8}
+                code{background:#0b1220;padding:.15rem .4rem;border-radius:6px}
+              </style>
+            </head>
+            <body>
+              <div class="wrap">
+                <header>
+                  <h1>HE Retail Analytics</h1>
+                  <p>Choose an area:</p>
+                </header>
+                <a class="card" href="./docs/">
+                  <h2>📚 Documentation</h2>
+                  <p>Sphinx site (Furo + MyST)</p>
+                </a>
+                <a class="card" href="./app/">
+                  <h2>🧪 Web App</h2>
+                  <p>Vite/React build deployed under <code>/app/</code></p>
+                </a>
+              </div>
+            </body>
+          </html>
+          HTML
+
+          # If you keep a CNAME file in repo root, include it:
+          if [ -f CNAME ]; then cp CNAME site/CNAME; fi
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,16 @@
+# Build / packaging
+**/*.egg-info/
+**/*.dist-info/
+
+# Bytecode / caches
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Local env files
+.env
+backend/.env
+
+# Results artifacts (keep only the .gitkeep placeholders)
+results/**/*
+!results/**/.gitkeep
