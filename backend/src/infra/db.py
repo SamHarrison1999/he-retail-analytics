@@ -46,7 +46,7 @@ class Artifact(SQLModel, table=True):
 class JobLog(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     job_id: str = Field(foreign_key="jobrecord.id", index=True)
-    ts: dt.datetime
+    created_at: dt.datetime = Field(default=dt.datetime.now(dt.UTC))
     line: str
 
 
@@ -117,7 +117,7 @@ def update_job_status(job_id: str, status: str) -> None:
 def append_job_log(job_id: str, line: str) -> None:
     engine = ensure_engine()
     with Session(engine) as s:
-        s.add(JobLog(job_id=job_id, ts=dt.datetime.now(dt.UTC), line=line))
+        s.add(JobLog(job_id=job_id, created_at=dt.datetime.now(dt.UTC), line=line))
         s.commit()
 
 
@@ -189,6 +189,6 @@ def list_jobs(limit: int = 50, offset: int = 0) -> tuple[List[JobRecord], int]:
         # Total count; cast to a tuple then index to satisfy mypy
         total_stmt = select(func.count()).select_from(JobRecord)
         row = cast(tuple[int], s.exec(total_stmt).one())
-        total = int(row[0])
+        total = int(row if isinstance(row, int) else row[0])
 
         return items, total
