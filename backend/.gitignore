@@ -14,3 +14,7 @@ backend/.env
 # Results artifacts (keep only the .gitkeep placeholders)
 results/**/*
 !results/**/.gitkeep
+
+.coverage
+results/
+*.sqlite

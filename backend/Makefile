@@ -25,3 +25,15 @@ type:
 
 clean:
 	rm -rf $(VENV) .pytest_cache __pycache__
+
+.PHONY: api worker redis
+ENV = RESULTS_DIR=$(PWD)/results DB_URL=sqlite:///$(PWD)/results/he.sqlite REDIS_URL=redis://localhost:6379/0 API_KEY=devkey
+
+api:
+	. .venv/bin/activate && $(ENV) uvicorn src.aggregator.api:app --reload
+
+worker:
+	. .venv/bin/activate && $(ENV) python -m src.aggregator.rq_worker
+
+redis:
+	docker ps | grep -q redis || docker run -d --name redis -p 6379:6379 redis:7-alpine
